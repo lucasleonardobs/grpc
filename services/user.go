@@ -2,6 +2,9 @@ package services
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"log"
 	"time"
 
 	"github.com/lucasleonardobs/go-grpc-server/pb"
@@ -61,4 +64,29 @@ func (us *UserService) AddUserVerbose(request *pb.User, stream pb.UserService_Ad
 	})
 
 	return nil
+}
+
+func (us *UserService) AddUsers(stream pb.UserService_AddUsersServer) error {
+	users := []*pb.User{}
+
+	for {
+		request, err := stream.Recv()
+		if err == io.EOF {
+			return stream.SendAndClose(&pb.Users{
+				User: users,
+			})
+		}
+
+		if err != nil {
+			log.Fatalf("Could not receive stream: %v", err)
+		}
+
+		users = append(users, &pb.User{
+			Id:    request.GetId(),
+			Name:  request.GetName(),
+			Email: request.GetEmail(),
+		})
+
+		fmt.Println("Adding ", request.GetName())
+	}
 }
