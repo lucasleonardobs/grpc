@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 
 	"github.com/lucasleonardobs/go-grpc-server/pb"
@@ -20,7 +21,7 @@ func main() {
 
 	client := pb.NewUserServiceClient(conn)
 
-	AddUser(client)
+	AddUserVerbose(client)
 }
 
 func AddUser(client pb.UserServiceClient) {
@@ -36,4 +37,28 @@ func AddUser(client pb.UserServiceClient) {
 	}
 
 	fmt.Println(response)
+}
+
+func AddUserVerbose(client pb.UserServiceClient) {
+	request := &pb.User{
+		Id:    "0",
+		Name:  "Alexia",
+		Email: "alexia@mo.com",
+	}
+
+	responseStream, err := client.AddUserVerbose(context.Background(), request)
+	if err != nil {
+		log.Fatalf("Could not make gRPC request: %v", err)
+	}
+
+	for {
+		stream, err := responseStream.Recv()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			log.Fatalf("Could not receive response %v", err)
+		}
+
+		fmt.Println("Status: ", stream.Status, " - ", stream.GetUser())
+	}
 }
